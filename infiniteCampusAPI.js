@@ -2,16 +2,18 @@ const TOKEN_URL = "https://tokenurl.com";
 const CLIENT_ID = "123456789";
 const CLIENT_SECRET = "sUpErSeCrEt";
 const API_URL = "https://iacloud2.infinitecampus.org/more";
+const SCHOOL_ID = "school-string"
 
 const TEMPTOKEN = "NothingYet";
 
 function getICBirthdays(date) {
     try {
-        var date = new Date();
         const ICToken = TEMPTOKEN; //////////////////////////
         const birthdayIDs = getBirthdayIDs(date);
-        const names = getNamesFromID(birthdayIDs);
-        return names;
+        const studentNames = getSchoolNamesFromID(birthdayIDs, "students");
+        const teacherNames = getSchoolNamesFromID(birthdayIDs, "teachers");
+
+        return [studentNames, teacherNames];
     }
     catch (err) {
         Logger.log("Error Caught: %s", err.message);
@@ -43,24 +45,25 @@ function getBirthdayIDs(date) {
     return birthdayIDs;
 }
 
-function getNamesFromID(ids) {
+function getSchoolNamesFromID(ids, group) {
     const options = {
         headers: {
             Authorization: "Bearer " + TEMPTOKEN
         }
     };
     const parameters = {
-        fields: "givenName,familyName", // TODO: limit to students
+        filter: "sourcedId='" + ids.join("' OR sourcedId='") + "'",
+        fields: "givenName,familyName",
         limit: 1
     }
-    const baseUrl = API_URL + "rostering/v1p2/users/";
+    const baseUrl = API_URL + "rostering/v1p2/schools/" + SCHOOL_ID + '/' + group;
+    const url = buildUrl_(baseUrl, parameters);
+    const response = UrlFetchApp.fetch(url, options);
+    const responseData = JSON.parse(response.getContentText());
     
     const names = [];
-    for (id of ids) {
-        const url = buildUrl_(baseUrl + id, parameters);
-        const response = UrlFetchApp.fetch(url, options);
-        const responseData = JSON.parse(response.getContentText());
-        names.push(responseData["user"]["givenName"] + " " + responseData["user"]["familyName"]);
+    for (user of responseData["users"]) {
+        names.push(user["givenName"] + " " + user["familyName"]);
     }
     return names;
 }

@@ -21,11 +21,20 @@ function getWeather(todaysDate) {
 }
 
 function getBirthdays(todaysDate) {
-    return ["Jess"];
+    const [studentNames, teacherNames] = getICBirthdays(todaysDate);
+    
+    var birthdayString = "";
+    if (studentNames.length !== 0) {
+        birthdayString += "Students:<ul><li>" + studentNames.join("</li><li>") + "</li></ul>";
+    }
+    if (teacherNames.length !== 0) {
+        birthdayString += "Teachers:<ul><li>" + teacherNames.join("</li><li>") + "</li></ul>";
+    }
+    return birthdayString;
 }
 
 function getLunchMenu(todaysDate) {
-    return "Menu unavailable.";
+    return "Menu unavailable digitally.";
 }
 
 function getSpecialDays(todaysDate) {
