@@ -4,11 +4,9 @@ const IC_CLIENT_SECRET = "sUpErSeCrEt";
 const IC_API_URL = "https://iacloud2.infinitecampus.org/more";
 const SCHOOL_ID = "school-string";
 
-const TEMPTOKEN = "usedForTesting";
-
 function getICBirthdays(date) {
     try {
-        const token = TEMPTOKEN;
+        const token = getOAuthToken();
         const birthdayIDs = getBirthdayIDs(date, token);
         const studentNames = getSchoolNamesFromID(birthdayIDs, "students", token);
         const teacherNames = getSchoolNamesFromID(birthdayIDs, "teachers", token);
@@ -31,7 +29,7 @@ function getBirthdayIDs(date, token) {
         fields: "sourcedId,birthDate",
         limit: 5000
     };
-    const url = buildUrl_(API_URL + "rostering/v1p2/demographics", parameters);
+    const url = buildUrl_(IC_API_URL + "rostering/v1p2/demographics", parameters);
     const response = UrlFetchApp.fetch(url, options);
     const responseData = JSON.parse(response.getContentText());
     
@@ -56,7 +54,7 @@ function getSchoolNamesFromID(ids, group, token) {
         fields: "givenName,familyName",
         limit: 1
     };
-    const baseUrl = API_URL + "rostering/v1p2/schools/" + SCHOOL_ID + '/' + group;
+    const baseUrl = IC_API_URL + "rostering/v1p2/schools/" + SCHOOL_ID + '/' + group;
     const url = buildUrl_(baseUrl, parameters);
     const response = UrlFetchApp.fetch(url, options);
     const responseData = JSON.parse(response.getContentText());

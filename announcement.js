@@ -34,7 +34,8 @@ function getTodaysWeather() {
 }
 
 function getBirthdays(todaysDate) {
-    const [studentNames, teacherNames] = getICBirthdays(todaysDate);
+    var [studentNames, teacherNames] = getICBirthdays(todaysDate);
+    teacherNames = getSheetBirthdays(todaysDate); // get teachers from sheet that includes associates
 
     var birthdayString = "";
     if (Array.isArray(studentNames) && studentNames.length > 0) {
@@ -44,12 +45,14 @@ function getBirthdays(todaysDate) {
         birthdayString += "Teachers:<ul><li>" + teacherNames.join("</li><li>") + "</li></ul>";
     }
     
-    if (birthdayString === "" && studentNames !== "") { // encountered an error
-        birthdayString = studentNames;
-        GmailApp.sendEmail(ERROR_EMAIL_ADDRESS, "Error in Morning Announcement Generation", birthdayString, {from: SENDER_ALIAS});
-    }
-    else {
-        birthdayString += "No birthdays today.";
+    if (birthdayString === "") { 
+        if (studentNames !== "" || teacherNames !== "") { // encountered an error
+            birthdayString = studentNames + "\n<br>" + teacherNames;
+            GmailApp.sendEmail(ERROR_EMAIL_ADDRESS, "Error in Morning Announcement Generation", birthdayString, {from: SENDER_ALIAS});
+        }
+        else {
+            birthdayString += "No birthdays today.";
+        }
     }
     return birthdayString;
 }
