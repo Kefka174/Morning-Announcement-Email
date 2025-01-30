@@ -14,10 +14,10 @@ function getWeatherForcast() {
         const responseData = JSON.parse(response.getContentText());
         
         const todaysForcast = {
-            headline: responseData["Headline"]["Text"],
-            highTemp: responseData["DailyForecasts"][0]["Temperature"]["Maximum"]["Value"],
-            lowTemp: responseData["DailyForecasts"][0]["Temperature"]["Minimum"]["Value"],
-            iconPhrase: responseData["DailyForecasts"][0]["Day"]["IconPhrase"]
+            headline: responseData.Headline.Text,
+            highTemp: responseData.DailyForecasts[0].Temperature.Maximum.Value,
+            lowTemp: responseData.DailyForecasts[0].Temperature.Minimum.Value,
+            iconPhrase: responseData.DailyForecasts[0].Day.IconPhrase
         };
         
         return todaysForcast;

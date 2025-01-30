@@ -35,9 +35,9 @@ function getBirthdayIDs(date, token) {
     
     const dateStr = Utilities.formatDate(date, "GMT-6", "MM-dd");
     const birthdayIDs = [];
-    for (person of responseData["demographics"]) {
-        if (person["birthDate"]?.includes(dateStr)) {
-            birthdayIDs.push(person["sourcedId"]);
+    for (person of responseData.demographics) {
+        if (person.birthDate?.includes(dateStr)) {
+            birthdayIDs.push(person.sourcedId);
         }
     }
     return birthdayIDs;
@@ -60,8 +60,8 @@ function getSchoolNamesFromID(ids, group, token) {
     const responseData = JSON.parse(response.getContentText());
     
     const names = [];
-    for (user of responseData["users"]) {
-        names.push(user["givenName"] + " " + user["familyName"]);
+    for (user of responseData.users) {
+        names.push(user.givenName + " " + user.familyName);
     }
     return names;
 }
@@ -78,7 +78,7 @@ function getOAuthToken() {
     const response = UrlFetchApp.fetch(IC_TOKEN_URL, options);
     const responseData = JSON.parse(response.getContentText());
 
-    return responseData["access_token"];
+    return responseData.access_token;
 }
 
 

@@ -3,12 +3,19 @@ const SENDER_ALIAS = "sender@domain.com";
 const ERROR_EMAIL_ADDRESS = "tech@support.com";
 const EMAIL_TEMPLATE_FILE = "emailTemplate";
 
+const DATES_TO_SKIP = [ // weekends are automatically skipped
+    "Jan 20, 2025",
+    "Feb 17, 2025",
+    "Mar 14, 2025 - Mar 17, 2025",
+    "Apr 17, 2025 - Apr 21, 2025"
+];
+
 function doGet(e) {
     const todaysDate = new Date();
     const todaysWeather = getTodaysWeather();
-    const todaysBirthdays = getBirthdays(todaysDate);
+    const todaysBirthdays = getBirthdaysString(todaysDate);
     const todaysLunch = getLunchMenu(todaysDate);
-    const todaysSpecialDays = getSpecialDays(todaysDate);
+    const todaysSpecialDays = getSpecialDaysString(todaysDate);
 
     const emailSubject = "Announcement Info for " + Utilities.formatDate(todaysDate, "GMT-6", "EEEE, MMMM d y");
     var emailBody = compileAnnouncementEmail(todaysDate, todaysWeather, todaysBirthdays, todaysLunch, todaysSpecialDays);
@@ -33,9 +40,9 @@ function getTodaysWeather() {
     return weatherString;
 }
 
-function getBirthdays(todaysDate) {
-    var [studentNames, teacherNames] = getICBirthdays(todaysDate);
-    teacherNames = getSheetBirthdays(todaysDate); // get teachers from sheet that includes associates
+function getBirthdaysString(date) {
+    var [studentNames, teacherNames] = getICBirthdays(date);
+    teacherNames = getSheetBirthdays(date); // get teachers from sheet that includes associates
 
     var birthdayString = "";
     if (Array.isArray(studentNames) && studentNames.length > 0) {
@@ -57,12 +64,19 @@ function getBirthdays(todaysDate) {
     return birthdayString;
 }
 
-function getLunchMenu(todaysDate) {
+function getLunchMenu(date) {
     return "Menu unavailable digitally.";
 }
 
-function getSpecialDays(todaysDate) {
-    return JSON.stringify({KDG: "2"});
+function getSpecialDaysString(date) {
+    const specialDays = getSpecialDays(date, DATES_TO_SKIP);
+
+    var specialDaysString = "<ul>";
+    for (dayType of specialDays) {
+        specialDaysString += "<li>" + dayType[0] + ": " + dayType[1] + "</li>"
+    }
+    specialDaysString += "</ul>"
+    return specialDaysString;
 }
 
 function compileAnnouncementEmail(date, weather, birthdays, lunch, specialDays) {
