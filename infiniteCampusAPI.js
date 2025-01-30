@@ -1,17 +1,17 @@
-const TOKEN_URL = "https://tokenurl.com";
-const CLIENT_ID = "123456789";
-const CLIENT_SECRET = "sUpErSeCrEt";
-const API_URL = "https://iacloud2.infinitecampus.org/more";
-const SCHOOL_ID = "school-string"
+const IC_TOKEN_URL = "https://tokenurl.com";
+const IC_CLIENT_ID = "123456789";
+const IC_CLIENT_SECRET = "sUpErSeCrEt";
+const IC_API_URL = "https://iacloud2.infinitecampus.org/more";
+const SCHOOL_ID = "school-string";
 
-const TEMPTOKEN = "NothingYet";
+const TEMPTOKEN = "usedForTesting";
 
 function getICBirthdays(date) {
     try {
-        const ICToken = TEMPTOKEN; //////////////////////////
-        const birthdayIDs = getBirthdayIDs(date);
-        const studentNames = getSchoolNamesFromID(birthdayIDs, "students");
-        const teacherNames = getSchoolNamesFromID(birthdayIDs, "teachers");
+        const token = TEMPTOKEN;
+        const birthdayIDs = getBirthdayIDs(date, token);
+        const studentNames = getSchoolNamesFromID(birthdayIDs, "students", token);
+        const teacherNames = getSchoolNamesFromID(birthdayIDs, "teachers", token);
 
         return [studentNames, teacherNames];
     }
@@ -21,16 +21,16 @@ function getICBirthdays(date) {
     }
 }
 
-function getBirthdayIDs(date) {
+function getBirthdayIDs(date, token) {
     const options = {
         headers: {
-            Authorization: "Bearer " + TEMPTOKEN
+            Authorization: "Bearer " + token
         }
     };
     const parameters = {
         fields: "sourcedId,birthDate",
         limit: 5000
-    }
+    };
     const url = buildUrl_(API_URL + "rostering/v1p2/demographics", parameters);
     const response = UrlFetchApp.fetch(url, options);
     const responseData = JSON.parse(response.getContentText());
@@ -45,17 +45,17 @@ function getBirthdayIDs(date) {
     return birthdayIDs;
 }
 
-function getSchoolNamesFromID(ids, group) {
+function getSchoolNamesFromID(ids, group, token) {
     const options = {
         headers: {
-            Authorization: "Bearer " + TEMPTOKEN
+            Authorization: "Bearer " + token
         }
     };
     const parameters = {
         filter: "sourcedId='" + ids.join("' OR sourcedId='") + "'",
         fields: "givenName,familyName",
         limit: 1
-    }
+    };
     const baseUrl = API_URL + "rostering/v1p2/schools/" + SCHOOL_ID + '/' + group;
     const url = buildUrl_(baseUrl, parameters);
     const response = UrlFetchApp.fetch(url, options);
@@ -74,10 +74,10 @@ function getOAuthToken() {
             grant_type: "client_credentials"
         },
         headers: {
-            Authorization: "Basic " + Utilities.base64Encode(CLIENT_ID + ':' + CLIENT_SECRET)
+            Authorization: "Basic " + Utilities.base64Encode(IC_CLIENT_ID + ':' + IC_CLIENT_SECRET)
         }
     };
-    const response = UrlFetchApp.fetch(TOKEN_URL, options);
+    const response = UrlFetchApp.fetch(IC_TOKEN_URL, options);
     const responseData = JSON.parse(response.getContentText());
 
     return responseData["access_token"];

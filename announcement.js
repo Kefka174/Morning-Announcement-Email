@@ -1,10 +1,11 @@
-const RECIEVER_EMAIL_ADDRESS = "reciever@domain.com"
-const SENDER_ALIAS = "sender@domain.com"
-const EMAIL_TEMPLATE_FILE = "emailTemplate"
+const RECIEVER_EMAIL_ADDRESS = "reciever@domain.com";
+const SENDER_ALIAS = "sender@domain.com";
+const ERROR_EMAIL_ADDRESS = "tech@support.com";
+const EMAIL_TEMPLATE_FILE = "emailTemplate";
 
 function doGet(e) {
     const todaysDate = new Date();
-    const todaysWeather = getWeather(todaysDate);
+    const todaysWeather = getTodaysWeather();
     const todaysBirthdays = getBirthdays(todaysDate);
     const todaysLunch = getLunchMenu(todaysDate);
     const todaysSpecialDays = getSpecialDays(todaysDate);
@@ -16,19 +17,39 @@ function doGet(e) {
     // GmailApp.sendEmail(RECIEVER_EMAIL_ADDRESS, emailSubject, emailBody, {from: SENDER_ALIAS});
 }
 
-function getWeather(todaysDate) {
-    return "Sunny, I promise";
+function getTodaysWeather() {
+    const todaysForcast = getWeatherForcast();
+    var weatherString = "";
+    if (typeof todaysForcast === 'object') {
+        weatherString += todaysForcast.iconPhrase + ".<br>";
+        weatherString += "High: " + todaysForcast.highTemp + "°F<br>";
+        weatherString += "Low: " + todaysForcast.lowTemp + "°F<br>";
+        weatherString += todaysForcast.headline;
+    }
+    else { // encountered an error
+        weatherString = todaysForcast;
+        GmailApp.sendEmail(ERROR_EMAIL_ADDRESS, "Error in Morning Announcement Generation", weatherString, {from: SENDER_ALIAS});
+    }
+    return weatherString;
 }
 
 function getBirthdays(todaysDate) {
     const [studentNames, teacherNames] = getICBirthdays(todaysDate);
-    
+
     var birthdayString = "";
-    if (studentNames.length !== 0) {
+    if (Array.isArray(studentNames) && studentNames.length > 0) {
         birthdayString += "Students:<ul><li>" + studentNames.join("</li><li>") + "</li></ul>";
     }
-    if (teacherNames.length !== 0) {
+    if (Array.isArray(teacherNames) && teacherNames.length > 0) {
         birthdayString += "Teachers:<ul><li>" + teacherNames.join("</li><li>") + "</li></ul>";
+    }
+    
+    if (birthdayString === "" && studentNames !== "") { // encountered an error
+        birthdayString = studentNames;
+        GmailApp.sendEmail(ERROR_EMAIL_ADDRESS, "Error in Morning Announcement Generation", birthdayString, {from: SENDER_ALIAS});
+    }
+    else {
+        birthdayString += "No birthdays today.";
     }
     return birthdayString;
 }
