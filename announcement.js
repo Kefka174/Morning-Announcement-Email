@@ -7,56 +7,57 @@ const DATES_TO_SKIP = [ // weekends are automatically skipped
     "Jan 20, 2025",
     "Feb 17, 2025",
     "Mar 14, 2025 - Mar 17, 2025",
-    "Apr 17, 2025 - Apr 21, 2025"
+    "Apr 17, 2025 - Apr 21, 2025",
 ];
 
 function doGet(e) {
     const todaysDate = new Date();
-    const skipDates = skipDateStringsToDates(DATES_TO_SKIP);
-    if (dateIsNotAWeekendOrSkipDay(todaysDate, skipDates)) {
-        const todaysWeather = getTodaysWeatherString();
+    const skipdates = skipdateStringsToDates(DATES_TO_SKIP);
+    if (dateIsNotAWeekendOrSkipDay(todaysDate, skipdates)) {
+        const todaysWeather = getTodaysWeatherString(todaysDate);
         const todaysBirthdays = getBirthdaysString(todaysDate);
         const todaysLunch = getLunchMenuString(todaysDate);
-        const todaysSpecialDays = getSpecialDaysString(todaysDate, skipDates);
+        const todaysSpecialDays = getSpecialDaysString(todaysDate, skipdates);
         
         const emailSubject = "Announcement Info for " + Utilities.formatDate(todaysDate, "GMT-6", "EEEE, MMMM d y");
         var emailBody = compileAnnouncementEmail(todaysDate, todaysWeather, todaysBirthdays, todaysLunch, todaysSpecialDays);
         
         Logger.log("Sending email to '%s'\nSubject:\n\t%s\nEmail Body:\n%s", RECIEVER_EMAIL_ADDRESS, emailSubject, emailBody);
-        GmailApp.sendEmail(RECIEVER_EMAIL_ADDRESS, emailSubject, emailBody, {from: SENDER_ALIAS});
+        GmailApp.sendEmail(RECIEVER_EMAIL_ADDRESS, emailSubject, emailBody, {htmlBody: emailBody, from: SENDER_ALIAS});
     }
 }
 
-function skipDateStringsToDates(skipDateStrings) {
+function skipdateStringsToDates(skipdateStrings) {
     const datePattern = /^[A-Z][a-z]{2,3} \d{1,2}, \d{4}$/;
     const dateRangePattern = /^[A-Z][a-z]{2,3} \d{1,2}, \d{4} - [A-Z][a-z]{2,3} \d{1,2}, \d{4}$/;
 
-    const skipDates = [];
-    for (const skipDateString of skipDateStrings) {
-        if (datePattern.test(skipDateString)) {
-            skipDates.push([new Date(skipDateString)]);
+    const skipdates = [];
+    for (const skipdateString of skipdateStrings) {
+        if (datePattern.test(skipdateString)) {
+            skipdates.push([new Date(skipdateString)]);
         }
-        else if (dateRangePattern.test(skipDateString)) {
-            const [startStr, endStr] = skipDateString.split(" - ");
-            skipDates.push([new Date(startStr), new Date(endStr)]);
+        else if (dateRangePattern.test(skipdateString)) {
+            const [startStr, endStr] = skipdateString.split(" - ");
+            skipdates.push([new Date(startStr), new Date(endStr)]);
         }
         else {
-            Logger.log("Invalid format on date to skip: %s", skipDateString);
+            Logger.log("Invalid format on date to skip: %s", skipdateString);
         }
     }
-    return skipDates;
+    return skipdates;
 }
 
-function dateIsNotAWeekendOrSkipDay(date, skipDates) {
+function dateIsNotAWeekendOrSkipDay(date, skipdates) {
     if (date.getDay() < 1 || date.getDay() > 5) {
         return false;
     }
 
-    for (const skipDate of skipDates) {
-        if (skipDate.length === 1 && datesAreSameDay(date, skipDate[0])) {
+    for (const skipdate of skipdates) {
+        if (datesAreSameDay(date, skipdate[0])) {
             return false;
         }
-        else if (skipDate.length === 2 && skipDate[0] < date && date < skipDate[1]) {
+        if (skipdate.length == 2 
+            && (datesAreSameDay(date, skipdate[1]) || (skipdate[0] < date && date < skipdate[1]))) {
             return false;
         }
     }
@@ -66,17 +67,39 @@ function dateIsNotAWeekendOrSkipDay(date, skipDates) {
 function datesAreSameDay(date1, date2) {
     return date1.getFullYear() === date2.getFullYear() 
         && date1.getMonth() === date2.getMonth() 
-        && date1.getDate() === date2.getMonth();
+        && date1.getDate() === date2.getDate();
 }
 
-function getTodaysWeatherString() {
+function getTodaysWeatherString(todaysDate) {
     const todaysForcast = getWeatherForcast();
     var weatherString = "";
     if (typeof todaysForcast === 'object') {
-        weatherString += todaysForcast.iconPhrase + ".<br>";
-        weatherString += "High: " + todaysForcast.highTemp + "°F<br>";
-        weatherString += "Low: " + todaysForcast.lowTemp + "°F<br>";
-        weatherString += todaysForcast.headline;
+        weatherString += todaysForcast.description + ".<ul>";
+        weatherString += "<li>High: " + todaysForcast.highTemp + "°F</li>";
+        weatherString += "<li>Low: " + todaysForcast.lowTemp + "°F</li>";
+
+        if (todaysForcast.precipChance > 30) {
+            weatherString += "<li>Precipitation: " + todaysForcast.precipChance + "% ";
+            if (todaysForcast.rainMeasure > 0.5) {
+                weatherString += todaysForcast.rainMeasure.toFixed(1) + "in rain<br></li>";
+            }
+            else if (todaysForcast.snowMeasure > 0.5) {
+                weatherString += todaysForcast.snowMeasure.toFixed(1) + "in snow<br></li>";
+            }
+            else if (todaysForcast.iceMeasure > 0.5) {
+                weatherString += todaysForcast.iceMeasure.toFixed(1) + "in ice<br></li>";
+            }
+            else {
+                weatherString += "</li>";
+            }
+        }
+        if (todaysForcast.windSpeed > 10) {
+            weatherString += "<li>Wind: Up to " + todaysForcast.windSpeed + "mi/h from " + todaysForcast.windDirection + "</li>";
+        }
+        if (datesAreSameDay(todaysForcast.headlineDate, todaysDate)) {
+            weatherString += "<li>" + todaysForcast.headline + "</li>";
+        }
+        weatherString += "</ul>";
     }
     else { // encountered an error
         weatherString = todaysForcast;
@@ -113,8 +136,8 @@ function getLunchMenuString(date) {
     return "Menu unavailable digitally.";
 }
 
-function getSpecialDaysString(date, skipDates) {
-    const specialDays = getSpecialDays(date, skipDates);
+function getSpecialDaysString(date, skipdates) {
+    const specialDays = getSpecialDays(date, skipdates);
 
     var specialDaysString = "<ul>";
     for (const dayType of specialDays) {

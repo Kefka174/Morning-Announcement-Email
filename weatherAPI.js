@@ -6,7 +6,8 @@ const WEATHER_API_KEY = "itsFreeOnTheirWebsite";
 function getWeatherForcast() {
     try {
         const parameters = {
-            apikey: WEATHER_API_KEY
+            apikey: WEATHER_API_KEY,
+            details: true,
         };
         
         const url = buildUrl_(WEATHER_API_URL + LOCATION_KEY, parameters);
@@ -15,9 +16,16 @@ function getWeatherForcast() {
         
         const todaysForcast = {
             headline: responseData.Headline.Text,
+            headlineDate: new Date(responseData.Headline.EffectiveDate),
             highTemp: responseData.DailyForecasts[0].Temperature.Maximum.Value,
             lowTemp: responseData.DailyForecasts[0].Temperature.Minimum.Value,
-            iconPhrase: responseData.DailyForecasts[0].Day.IconPhrase
+            description: responseData.DailyForecasts[0].Day.ShortPhrase,
+            precipChance: responseData.DailyForecasts[0].Day.PrecipitationProbability,
+            rainMeasure: responseData.DailyForecasts[0].Day.Rain.Value,
+            snowMeasure: responseData.DailyForecasts[0].Day.Snow.Value,
+            iceMeasure: responseData.DailyForecasts[0].Day.Ice.Value,
+            windSpeed: responseData.DailyForecasts[0].Day.Wind.Speed.Value,
+            windDirection: responseData.DailyForecasts[0].Day.Wind.Direction.English,
         };
         
         return todaysForcast;

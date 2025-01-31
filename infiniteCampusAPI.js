@@ -22,12 +22,12 @@ function getICBirthdays(date) {
 function getBirthdayIDs(date, token) {
     const options = {
         headers: {
-            Authorization: "Bearer " + token
+            Authorization: "Bearer " + token,
         }
     };
     const parameters = {
         fields: "sourcedId,birthDate",
-        limit: 5000
+        limit: 5000,
     };
     const url = buildUrl_(IC_API_URL + "rostering/v1p2/demographics", parameters);
     const response = UrlFetchApp.fetch(url, options);
@@ -46,13 +46,13 @@ function getBirthdayIDs(date, token) {
 function getSchoolNamesFromID(ids, group, token) {
     const options = {
         headers: {
-            Authorization: "Bearer " + token
+            Authorization: "Bearer " + token,
         }
     };
     const parameters = {
         filter: "sourcedId='" + ids.join("' OR sourcedId='") + "'",
         fields: "givenName,familyName",
-        limit: 5000
+        limit: 5000,
     };
     const baseUrl = IC_API_URL + "rostering/v1p2/schools/" + SCHOOL_ID + '/' + group;
     const url = buildUrl_(baseUrl, parameters);
@@ -69,11 +69,11 @@ function getSchoolNamesFromID(ids, group, token) {
 function getOAuthToken() {
     const options = {
         payload: {
-            grant_type: "client_credentials"
+            grant_type: "client_credentials",
         },
         headers: {
-            Authorization: "Basic " + Utilities.base64Encode(IC_CLIENT_ID + ':' + IC_CLIENT_SECRET)
-        }
+            Authorization: "Basic " + Utilities.base64Encode(IC_CLIENT_ID + ':' + IC_CLIENT_SECRET),
+        },
     };
     const response = UrlFetchApp.fetch(IC_TOKEN_URL, options);
     const responseData = JSON.parse(response.getContentText());
