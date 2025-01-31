@@ -12,19 +12,64 @@ const DATES_TO_SKIP = [ // weekends are automatically skipped
 
 function doGet(e) {
     const todaysDate = new Date();
-    const todaysWeather = getTodaysWeather();
-    const todaysBirthdays = getBirthdaysString(todaysDate);
-    const todaysLunch = getLunchMenu(todaysDate);
-    const todaysSpecialDays = getSpecialDaysString(todaysDate);
-
-    const emailSubject = "Announcement Info for " + Utilities.formatDate(todaysDate, "GMT-6", "EEEE, MMMM d y");
-    var emailBody = compileAnnouncementEmail(todaysDate, todaysWeather, todaysBirthdays, todaysLunch, todaysSpecialDays);
-
-    Logger.log("Sending email to '%s'\nSubject:\n\t%s\nEmail Body:\n%s", RECIEVER_EMAIL_ADDRESS, emailSubject, emailBody);
-    // GmailApp.sendEmail(RECIEVER_EMAIL_ADDRESS, emailSubject, emailBody, {from: SENDER_ALIAS});
+    const skipDates = skipDateStringsToDates(DATES_TO_SKIP);
+    if (dateIsNotAWeekendOrSkipDay(todaysDate, skipDates)) {
+        const todaysWeather = getTodaysWeatherString();
+        const todaysBirthdays = getBirthdaysString(todaysDate);
+        const todaysLunch = getLunchMenuString(todaysDate);
+        const todaysSpecialDays = getSpecialDaysString(todaysDate, skipDates);
+        
+        const emailSubject = "Announcement Info for " + Utilities.formatDate(todaysDate, "GMT-6", "EEEE, MMMM d y");
+        var emailBody = compileAnnouncementEmail(todaysDate, todaysWeather, todaysBirthdays, todaysLunch, todaysSpecialDays);
+        
+        Logger.log("Sending email to '%s'\nSubject:\n\t%s\nEmail Body:\n%s", RECIEVER_EMAIL_ADDRESS, emailSubject, emailBody);
+        GmailApp.sendEmail(RECIEVER_EMAIL_ADDRESS, emailSubject, emailBody, {from: SENDER_ALIAS});
+    }
 }
 
-function getTodaysWeather() {
+function skipDateStringsToDates(skipDateStrings) {
+    const datePattern = /^[A-Z][a-z]{2,3} \d{1,2}, \d{4}$/;
+    const dateRangePattern = /^[A-Z][a-z]{2,3} \d{1,2}, \d{4} - [A-Z][a-z]{2,3} \d{1,2}, \d{4}$/;
+
+    const skipDates = [];
+    for (const skipDateString of skipDateStrings) {
+        if (datePattern.test(skipDateString)) {
+            skipDates.push([new Date(skipDateString)]);
+        }
+        else if (dateRangePattern.test(skipDateString)) {
+            const [startStr, endStr] = skipDateString.split(" - ");
+            skipDates.push([new Date(startStr), new Date(endStr)]);
+        }
+        else {
+            Logger.log("Invalid format on date to skip: %s", skipDateString);
+        }
+    }
+    return skipDates;
+}
+
+function dateIsNotAWeekendOrSkipDay(date, skipDates) {
+    if (date.getDay() < 1 || date.getDay() > 5) {
+        return false;
+    }
+
+    for (const skipDate of skipDates) {
+        if (skipDate.length === 1 && datesAreSameDay(date, skipDate[0])) {
+            return false;
+        }
+        else if (skipDate.length === 2 && skipDate[0] < date && date < skipDate[1]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function datesAreSameDay(date1, date2) {
+    return date1.getFullYear() === date2.getFullYear() 
+        && date1.getMonth() === date2.getMonth() 
+        && date1.getDate() === date2.getMonth();
+}
+
+function getTodaysWeatherString() {
     const todaysForcast = getWeatherForcast();
     var weatherString = "";
     if (typeof todaysForcast === 'object') {
@@ -64,15 +109,15 @@ function getBirthdaysString(date) {
     return birthdayString;
 }
 
-function getLunchMenu(date) {
+function getLunchMenuString(date) {
     return "Menu unavailable digitally.";
 }
 
-function getSpecialDaysString(date) {
-    const specialDays = getSpecialDays(date, DATES_TO_SKIP);
+function getSpecialDaysString(date, skipDates) {
+    const specialDays = getSpecialDays(date, skipDates);
 
     var specialDaysString = "<ul>";
-    for (dayType of specialDays) {
+    for (const dayType of specialDays) {
         specialDaysString += "<li>" + dayType[0] + ": " + dayType[1] + "</li>"
     }
     specialDaysString += "</ul>"

@@ -8,12 +8,11 @@ const SPECIAL_DAYS_CONFIG = {
 
 function getSpecialDays(date, skipDates) {
     const startDate = new Date(SPECIAL_DAYS_CONFIG.startDateStr);
-
     const weekdaysSinceStart = weekdaysBetweenDates(startDate, date);
     const validDaysSinceStart = weekdaysSinceStart - skipDatesBetweenDates(startDate, date, skipDates);
 
     const specialDays = [];
-    for (dayType of SPECIAL_DAYS_CONFIG.dayTypes) {
+    for (const dayType of SPECIAL_DAYS_CONFIG.dayTypes) {
         var dayVal = (dayType.startVal + validDaysSinceStart) % dayType.maxVal;
         if (dayVal === 0) {
             dayVal = dayType.maxVal;
@@ -41,29 +40,20 @@ function weekdaysBetweenDates(startDate, endDate) {
 }
 
 function skipDatesBetweenDates(startDate, endDate, skipDates) {
-    const datePattern = /^[A-Z][a-z]{2,3} \d{1,2}, \d{4}$/;
-    const dateRangePattern = /^[A-Z][a-z]{2,3} \d{1,2}, \d{4} - [A-Z][a-z]{2,3} \d{1,2}, \d{4}$/;
     var numSkipDatesBetween = 0;
-    for (skipDateString of skipDates) {
-        if (datePattern.test(skipDateString)) {
-            const skipDate = new Date(skipDateString);
-            if (skipDate > startDate && skipDate < endDate && isWeekday(skipDate)) {
+    for (const skipDate of skipDates) {
+        if (skipDate.length === 1) {
+            if (startDate < skipDate[0] && skipDate[0] < endDate && isWeekday(skipDate[0])) {
                 numSkipDatesBetween++;
             }
         }
-        else if (dateRangePattern.test(skipDateString)) {
-            const [startStr, endStr] = skipDateString.split(" - ");
-            var skipRangeStartDate = new Date(startStr);
-            var skipRangeEndDate = new Date(endStr);
-
-            if (startDate <= skipRangeEndDate && endDate >= skipRangeStartDate) {
-                skipRangeStartDate = Math.max(startDate, skipRangeStartDate);
-                skipRangeEndDate = Math.min(endDate, skipRangeEndDate);
-                numSkipDatesBetween += weekdaysBetweenDates(skipRangeStartDate, skipRangeEndDate);
+        else if (skipDate.length === 2) {
+            const intervalsOverlap = startDate <= skipDate[1] && endDate >= skipDate[0];
+            if (intervalsOverlap) {
+                const overlapStartDate = Math.max(startDate, skipDate[0]);
+                const overlapEndDate = Math.min(endDate, skipDate[1]);
+                numSkipDatesBetween += weekdaysBetweenDates(overlapStartDate, overlapEndDate);
             }
-        }
-        else {
-            Logger.log("Invalid format on date to skip: %s", skipDateString);
         }
     }
     return numSkipDatesBetween;

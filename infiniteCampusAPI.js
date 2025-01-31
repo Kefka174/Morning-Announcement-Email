@@ -35,7 +35,7 @@ function getBirthdayIDs(date, token) {
     
     const dateStr = Utilities.formatDate(date, "GMT-6", "MM-dd");
     const birthdayIDs = [];
-    for (person of responseData.demographics) {
+    for (const person of responseData.demographics) {
         if (person.birthDate?.includes(dateStr)) {
             birthdayIDs.push(person.sourcedId);
         }
@@ -52,7 +52,7 @@ function getSchoolNamesFromID(ids, group, token) {
     const parameters = {
         filter: "sourcedId='" + ids.join("' OR sourcedId='") + "'",
         fields: "givenName,familyName",
-        limit: 1
+        limit: 5000
     };
     const baseUrl = IC_API_URL + "rostering/v1p2/schools/" + SCHOOL_ID + '/' + group;
     const url = buildUrl_(baseUrl, parameters);
@@ -60,7 +60,7 @@ function getSchoolNamesFromID(ids, group, token) {
     const responseData = JSON.parse(response.getContentText());
     
     const names = [];
-    for (user of responseData.users) {
+    for (const user of responseData.users) {
         names.push(user.givenName + " " + user.familyName);
     }
     return names;
