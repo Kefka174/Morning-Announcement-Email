@@ -2,6 +2,7 @@ const RECIEVER_EMAIL_ADDRESS = "reciever@domain.com";
 const SENDER_ALIAS = "sender@domain.com";
 const ERROR_EMAIL_ADDRESS = "tech@support.com";
 const EMAIL_TEMPLATE_FILE = "emailTemplate";
+const TIME_ZONE = Session.getScriptTimeZone();
 
 const DATES_TO_SKIP = [ // Weekends are automatically skipped
     "Jan 20, 2025",
@@ -14,14 +15,15 @@ const endDateStr = "May 24, 2025";
 function doGet(e) {
     const todaysDate = new Date();
     const skipdates = skipdateStringsToDates(DATES_TO_SKIP);
-    if ( todaysDate < new Date(endDateStr) && dateIsNotAWeekendOrSkipDay(todaysDate, skipdates)) {
+    if (todaysDate < new Date(endDateStr) && dateIsNotAWeekendOrSkipDay(todaysDate, skipdates)) {
         const todaysWeather = getTodaysWeatherString(todaysDate);
         const todaysBirthdays = getBirthdaysString(todaysDate);
         const todaysLunch = getLunchMenuString(todaysDate);
         const todaysSpecialDays = getSpecialDaysString(todaysDate, skipdates);
+        const upcommingSkipdate = getUpcommingSkipdateString(todaysDate, skipdates);
         
-        const emailSubject = "Announcement Info for " + Utilities.formatDate(todaysDate, "GMT-6", "EEEE, MMMM d y");
-        var emailBody = compileAnnouncementEmail(todaysDate, todaysWeather, todaysBirthdays, todaysLunch, todaysSpecialDays);
+        const emailSubject = "Announcement Info for " + Utilities.formatDate(todaysDate, TIME_ZONE, "EEEE, MMMM d y");
+        var emailBody = compileAnnouncementEmail(todaysDate, todaysWeather, todaysBirthdays, todaysLunch, todaysSpecialDays, upcommingSkipdate);
         
         Logger.log("Sending email to '%s'\nSubject:\n\t%s\nEmail Body:\n%s", RECIEVER_EMAIL_ADDRESS, emailSubject, emailBody);
         GmailApp.sendEmail(RECIEVER_EMAIL_ADDRESS, emailSubject, emailBody, {htmlBody: emailBody, from: SENDER_ALIAS});
@@ -170,12 +172,40 @@ function getSpecialDaysString(date, skipdates) {
     return specialDaysString;
 }
 
-function compileAnnouncementEmail(date, weather, birthdays, lunch, specialDays) {
+function getUpcommingSkipdateString(date, skipdates) {
+    const nextWeekday = new Date(date);
+    if (date.getDay() < 5) {
+        nextWeekday.setDate(nextWeekday.getDate() + 1);
+    }
+    else {
+        nextWeekday.setDate(nextWeekday.getDate() + 3);
+    }
+
+    var upcommingSkipdate = [];
+    for (const skipdate of skipdates) {
+        if (datesAreSameDay(nextWeekday, skipdate[0])) {
+            upcommingSkipdate = skipdate;
+        }
+    }
+
+    var skipdateString = "";
+    if (upcommingSkipdate.length === 1) {
+        skipdateString = "There will be no school on " + Utilities.formatDate(upcommingSkipdate[0], TIME_ZONE, "EEEE, MMMM d");
+    }
+    else if (upcommingSkipdate.length === 2) {
+        skipdateString = "There will be no school on " + Utilities.formatDate(upcommingSkipdate[0], TIME_ZONE, "EEEE, MMMM d") 
+        + " through " + Utilities.formatDate(upcommingSkipdate[1], TIME_ZONE, "EEEE, MMMM d");
+    }
+    return skipdateString;
+}
+
+function compileAnnouncementEmail(date, weather, birthdays, lunch, specialDays, upcommingSkipdate) {
     var emailBody = HtmlService.createHtmlOutputFromFile(EMAIL_TEMPLATE_FILE).getContent();
-    emailBody = emailBody.replace("%date", Utilities.formatDate(date, "GMT-6", "EEEE, MMMM d y"));
+    emailBody = emailBody.replace("%date", Utilities.formatDate(date, TIME_ZONE, "EEEE, MMMM d y"));
     emailBody = emailBody.replace("%weather", weather);
     emailBody = emailBody.replace("%birthdays", birthdays);
     emailBody = emailBody.replace("%lunch", lunch);
     emailBody = emailBody.replace("%specialDays", specialDays);
+    emailBody = emailBody.replace("%skipdate", upcommingSkipdate);
     return emailBody;
 }

@@ -33,7 +33,7 @@ function getBirthdayIDs(date, token) {
     const response = UrlFetchApp.fetch(url, options);
     const responseData = JSON.parse(response.getContentText());
     
-    const dateStr = Utilities.formatDate(date, "GMT-6", "MM-dd");
+    const dateStr = Utilities.formatDate(date, TIME_ZONE, "MM-dd");
     const birthdayIDs = [];
     for (const person of responseData.demographics) {
         if (person.birthDate?.includes(dateStr)) {

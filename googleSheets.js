@@ -6,7 +6,7 @@ function getSheetBirthdays(date) {
         const sheet = SpreadsheetApp.openById(BIRTHDAY_SHEET_ID).getSheetByName(BIRTHDAY_SHEET_NAME);
         const sheetData = sheet.getDataRange().getValues();
 
-        const dateString = Utilities.formatDate(date, "GMT-6", "MMMM d");
+        const dateString = Utilities.formatDate(date, TIME_ZONE, "MMMM d");
         const names = [];
         for (const row of sheetData) { // TODO: decouple cell ordering
             if (row[2] === dateString) {
