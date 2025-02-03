@@ -1,8 +1,8 @@
 const SPECIAL_DAYS_CONFIG = {
     startDateStr: "Jan 6, 2025",
     dayTypes: [
-        { name: "KG", startVal: 1, maxVal: 6 },
-        { name: "1st-4th", startVal: 5, maxVal: 5 },
+        { name: "KG", startVal: 5, maxVal: 6 },
+        { name: "1st-4th", startVal: 4, maxVal: 5 },
     ]
 };
 

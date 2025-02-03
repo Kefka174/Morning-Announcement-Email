@@ -3,17 +3,18 @@ const SENDER_ALIAS = "sender@domain.com";
 const ERROR_EMAIL_ADDRESS = "tech@support.com";
 const EMAIL_TEMPLATE_FILE = "emailTemplate";
 
-const DATES_TO_SKIP = [ // weekends are automatically skipped
+const DATES_TO_SKIP = [ // Weekends are automatically skipped
     "Jan 20, 2025",
     "Feb 17, 2025",
     "Mar 14, 2025 - Mar 17, 2025",
     "Apr 17, 2025 - Apr 21, 2025",
 ];
+const endDateStr = "May 24, 2025";
 
 function doGet(e) {
     const todaysDate = new Date();
     const skipdates = skipdateStringsToDates(DATES_TO_SKIP);
-    if (dateIsNotAWeekendOrSkipDay(todaysDate, skipdates)) {
+    if ( todaysDate < new Date(endDateStr) && dateIsNotAWeekendOrSkipDay(todaysDate, skipdates)) {
         const todaysWeather = getTodaysWeatherString(todaysDate);
         const todaysBirthdays = getBirthdaysString(todaysDate);
         const todaysLunch = getLunchMenuString(todaysDate);
@@ -26,6 +27,7 @@ function doGet(e) {
         GmailApp.sendEmail(RECIEVER_EMAIL_ADDRESS, emailSubject, emailBody, {htmlBody: emailBody, from: SENDER_ALIAS});
     }
 }
+
 
 function skipdateStringsToDates(skipdateStrings) {
     const datePattern = /^[A-Z][a-z]{2,3} \d{1,2}, \d{4}$/;
@@ -112,6 +114,27 @@ function getBirthdaysString(date) {
     var [studentNames, teacherNames] = getICBirthdays(date);
     teacherNames = getSheetBirthdays(date); // get teachers from sheet that includes associates
 
+    // Get birthdays from the weekend
+    // group Saturday birthdays with Friday, Sunday birthdays with Monday
+    if (date.getDay() === 1 || date.getDay() === 5) {
+        const weekendDate = new Date(date);
+        if (date.getDay() === 1) {
+            weekendDate.setDate(weekendDate.getDate() - 1);
+        }
+        else {
+            weekendDate.setDate(weekendDate.getDate() + 1);
+        }
+
+        var [weekendStudentNames, weekendTeacherNames] = getICBirthdays(weekendDate);
+        weekendTeacherNames = getSheetBirthdays(weekendDate);
+        studentNames.push(...weekendStudentNames);
+        teacherNames.push(...weekendTeacherNames);
+    }
+
+    return generateBirthDayString(studentNames, teacherNames);
+}
+
+function generateBirthDayString(studentNames, teacherNames) {
     var birthdayString = "";
     if (Array.isArray(studentNames) && studentNames.length > 0) {
         birthdayString += "Students:<ul><li>" + studentNames.join("</li><li>") + "</li></ul>";
@@ -121,7 +144,7 @@ function getBirthdaysString(date) {
     }
     
     if (birthdayString === "") { 
-        if (studentNames !== "" || teacherNames !== "") { // encountered an error
+        if (studentNames.length > 0 || teacherNames.length > 0) { // encountered an error
             birthdayString = studentNames + "\n<br>" + teacherNames;
             GmailApp.sendEmail(ERROR_EMAIL_ADDRESS, "Error in Morning Announcement Generation", birthdayString, {from: SENDER_ALIAS});
         }
