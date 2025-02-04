@@ -9,9 +9,9 @@ function getICBirthdays(date) {
         const token = getOAuthToken();
         const birthdayIDs = getBirthdayIDs(date, token);
         const studentNames = getSchoolNamesFromID(birthdayIDs, "students", token);
-        const teacherNames = getSchoolNamesFromID(birthdayIDs, "teachers", token);
+        const staffNames = getSchoolNamesFromID(birthdayIDs, "teachers", token);
 
-        return [studentNames, teacherNames];
+        return [studentNames, staffNames];
     }
     catch (err) {
         Logger.log("Error Caught: %s", err.message);

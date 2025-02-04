@@ -12,7 +12,7 @@ const DATES_TO_SKIP = [ // Weekends are automatically skipped
 ];
 const endDateStr = "May 24, 2025";
 
-function doGet(e) {
+function generateAnnouncement() {
     const todaysDate = new Date();
     const skipdates = skipdateStringsToDates(DATES_TO_SKIP);
     if (todaysDate < new Date(endDateStr) && dateIsNotAWeekendOrSkipDay(todaysDate, skipdates)) {
@@ -83,15 +83,15 @@ function getTodaysWeatherString(todaysDate) {
         weatherString += "<li>Low: " + todaysForcast.lowTemp + "°F</li>";
 
         if (todaysForcast.precipChance > 30) {
-            weatherString += "<li>Precipitation: " + todaysForcast.precipChance + "% ";
+            weatherString += "<li>Precipitation: " + todaysForcast.precipChance + "% chance ";
             if (todaysForcast.rainMeasure > 0.5) {
-                weatherString += todaysForcast.rainMeasure.toFixed(1) + "in rain<br></li>";
+                weatherString += "of " + todaysForcast.rainMeasure.toFixed(1) + "in rain<br></li>";
             }
             else if (todaysForcast.snowMeasure > 0.5) {
-                weatherString += todaysForcast.snowMeasure.toFixed(1) + "in snow<br></li>";
+                weatherString += "of " + todaysForcast.snowMeasure.toFixed(1) + "in snow<br></li>";
             }
             else if (todaysForcast.iceMeasure > 0.5) {
-                weatherString += todaysForcast.iceMeasure.toFixed(1) + "in ice<br></li>";
+                weatherString += "of " + todaysForcast.iceMeasure.toFixed(1) + "in ice<br></li>";
             }
             else {
                 weatherString += "</li>";
@@ -100,9 +100,7 @@ function getTodaysWeatherString(todaysDate) {
         if (todaysForcast.windSpeed > 10) {
             weatherString += "<li>Wind: Up to " + todaysForcast.windSpeed + "mi/h from " + todaysForcast.windDirection + "</li>";
         }
-        if (datesAreSameDay(todaysForcast.headlineDate, todaysDate)) {
-            weatherString += "<li>" + todaysForcast.headline + "</li>";
-        }
+        weatherString += "<li>" + todaysForcast.headline + "</li>";
         weatherString += "</ul>";
     }
     else { // encountered an error
@@ -113,8 +111,8 @@ function getTodaysWeatherString(todaysDate) {
 }
 
 function getBirthdaysString(date) {
-    var [studentNames, teacherNames] = getICBirthdays(date);
-    teacherNames = getSheetBirthdays(date); // get teachers from sheet that includes associates
+    var [studentNames, staffNames] = getICBirthdays(date);
+    staffNames = getSheetBirthdays(date); // get staff from sheet that includes associates
 
     // Get birthdays from the weekend
     // group Saturday birthdays with Friday, Sunday birthdays with Monday
@@ -127,27 +125,27 @@ function getBirthdaysString(date) {
             weekendDate.setDate(weekendDate.getDate() + 1);
         }
 
-        var [weekendStudentNames, weekendTeacherNames] = getICBirthdays(weekendDate);
-        weekendTeacherNames = getSheetBirthdays(weekendDate);
+        var [weekendStudentNames, weekendStaffNames] = getICBirthdays(weekendDate);
+        weekendStaffNames = getSheetBirthdays(weekendDate);
         studentNames.push(...weekendStudentNames);
-        teacherNames.push(...weekendTeacherNames);
+        staffNames.push(...weekendStaffNames);
     }
 
-    return generateBirthDayString(studentNames, teacherNames);
+    return generateBirthDayString(studentNames, staffNames);
 }
 
-function generateBirthDayString(studentNames, teacherNames) {
+function generateBirthDayString(studentNames, staffNames) {
     var birthdayString = "";
     if (Array.isArray(studentNames) && studentNames.length > 0) {
         birthdayString += "Students:<ul><li>" + studentNames.join("</li><li>") + "</li></ul>";
     }
-    if (Array.isArray(teacherNames) && teacherNames.length > 0) {
-        birthdayString += "Teachers:<ul><li>" + teacherNames.join("</li><li>") + "</li></ul>";
+    if (Array.isArray(staffNames) && staffNames.length > 0) {
+        birthdayString += "Staff:<ul><li>" + staffNames.join("</li><li>") + "</li></ul>";
     }
     
     if (birthdayString === "") { 
-        if (studentNames.length > 0 || teacherNames.length > 0) { // encountered an error
-            birthdayString = studentNames + "\n<br>" + teacherNames;
+        if (studentNames.length > 0 || staffNames.length > 0) { // encountered an error
+            birthdayString = studentNames + "\n<br>" + staffNames;
             GmailApp.sendEmail(ERROR_EMAIL_ADDRESS, "Error in Morning Announcement Generation", birthdayString, {from: SENDER_ALIAS});
         }
         else {
@@ -158,7 +156,7 @@ function generateBirthDayString(studentNames, teacherNames) {
 }
 
 function getLunchMenuString(date) {
-    return "Menu unavailable digitally.";
+    return "Menu unavailable digitally. Check PDF copy.";
 }
 
 function getSpecialDaysString(date, skipdates) {
