@@ -35,21 +35,21 @@ The End-Date is the date on and after which announcements will no longer be gene
 <sub>\*may be moved to a Google Sheet in the future for further ease of access.</sub>
 
 ## Weather API
-The daily weather forecast is generated using [AccuWeather's Forecast API](developer.accuweather.com/apis).
+The daily weather forecast is generated using [AccuWeather's Forecast API](https://developer.accuweather.com/apis).
 
 Some forecast values are only included in the announcement if they are above a threshold.
 - Precipitation is only included if the precipitation chance is above 30%
 - Individual precipitation types (rain, snow, or ice) are only included if there's more than half an inch forecasted
-- Wind speed and direction are only included if the wind speed is above 15mi/h
+- Wind speed and direction are only included if the wind speed is above 10mi/h
 
 ## Infinite Campus OneRoster API
-Student and Staff birthdays are pulled from Infinite Campus using the [OneRoster API](campuslearning.com/developers/home). Within Infinite Campus it can be set up and configured through the Digital Learning Applications Configuration tool.
+Student and Staff birthdays are pulled from Infinite Campus using the [OneRoster API](https://campuslearning.com/developers/home). Within Infinite Campus it can be set up and configured through the Digital Learning Applications Configuration tool.
 
 Results are limited to a singular school using a `schoolSourceId` that can be taken from OneRoster's getAllSchools call (callable from the Troubleshooting Documentation list of calls by clicking **_Try it out_**).\
 ![Screenshot 2025-02-12 120532](https://github.com/user-attachments/assets/586d1458-ee60-4db4-acab-5aeaa5f4b4ad)
 
 
-**OneRoster results are limited to teachers only.** Associates and Support Staff are not included.
+**OneRoster returns results for teachers only.** Associates and Support Staff are not included in the API response.
 
 ## Google Sheet Integration
 Because Infinite Campus OneRoster limits results to teachers only, not including associates or support staff, a google sheet is used to supply a complete list of Staff birthdays.

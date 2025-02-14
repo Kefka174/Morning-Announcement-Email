@@ -10,12 +10,14 @@ const DATES_TO_SKIP = [ // Weekends are automatically skipped
     "Mar 14, 2025 - Mar 17, 2025",
     "Apr 17, 2025 - Apr 21, 2025",
 ];
-const endDateStr = "May 24, 2025";
+const END_DATE = "May 24, 2025";
 
 function generateAnnouncement() {
     const todaysDate = new Date();
     const skipdates = skipdateStringsToDates(DATES_TO_SKIP);
-    if (todaysDate < new Date(endDateStr) && dateIsNotAWeekendOrSkipDay(todaysDate, skipdates)) {
+
+    const dateIsBeforeEndDate = todaysDate < new Date(END_DATE);
+    if (dateIsBeforeEndDate && dateIsNotAWeekendOrSkipDay(todaysDate, skipdates)) {
         const todaysWeather = getTodaysWeatherString(todaysDate);
         const todaysBirthdays = getBirthdaysString(todaysDate);
         const todaysLunch = getLunchMenuString(todaysDate);
@@ -23,7 +25,7 @@ function generateAnnouncement() {
         const upcommingSkipdate = getUpcommingSkipdateString(todaysDate, skipdates);
         
         const emailSubject = "Announcement Info for " + Utilities.formatDate(todaysDate, TIME_ZONE, "EEEE, MMMM d y");
-        var emailBody = compileAnnouncementEmail(todaysDate, todaysWeather, todaysBirthdays, todaysLunch, todaysSpecialDays, upcommingSkipdate);
+        let emailBody = compileAnnouncementEmail(todaysDate, todaysWeather, todaysBirthdays, todaysLunch, todaysSpecialDays, upcommingSkipdate);
         
         Logger.log("Sending email to '%s'\nSubject:\n\t%s\nEmail Body:\n%s", RECIEVER_EMAIL_ADDRESS, emailSubject, emailBody);
         GmailApp.sendEmail(RECIEVER_EMAIL_ADDRESS, emailSubject, emailBody, {htmlBody: emailBody, from: SENDER_ALIAS});
@@ -52,20 +54,23 @@ function skipdateStringsToDates(skipdateStrings) {
 }
 
 function dateIsNotAWeekendOrSkipDay(date, skipdates) {
-    if (date.getDay() < 1 || date.getDay() > 5) {
+    if (!isWeekday(date)) {
         return false;
     }
 
     for (const skipdate of skipdates) {
-        if (datesAreSameDay(date, skipdate[0])) {
-            return false;
-        }
-        if (skipdate.length == 2 
-            && (datesAreSameDay(date, skipdate[1]) || (skipdate[0] < date && date < skipdate[1]))) {
+        const dateMatchesFirstSkipdate = datesAreSameDay(date, skipdate[0]);
+        const dateIsWithinRange = skipdate.length == 2 
+                            && (datesAreSameDay(date, skipdate[1]) || (skipdate[0] < date && date < skipdate[1]));
+        if (dateMatchesFirstSkipdate || dateIsWithinRange) {
             return false;
         }
     }
     return true;
+}
+
+function isWeekday(date) {
+    return (date.getDay() >= 1 && date.getDay() <= 5);
 }
 
 function datesAreSameDay(date1, date2) {
@@ -75,43 +80,42 @@ function datesAreSameDay(date1, date2) {
 }
 
 function getTodaysWeatherString(todaysDate) {
-    const todaysForcast = getWeatherForcast();
-    var weatherString = "";
-    if (typeof todaysForcast === 'object') {
-        weatherString += todaysForcast.description + ".<ul>";
-        weatherString += "<li>High: " + todaysForcast.highTemp + "°F</li>";
-        weatherString += "<li>Low: " + todaysForcast.lowTemp + "°F</li>";
+    const todaysForecast = getWeatherForecast();
+    let weatherString = "";
+    if (typeof todaysForecast === 'object') {
+        weatherString += `${todaysForecast.description}.<ul>`;
+        weatherString += `<li>High: ${todaysForecast.highTemp}°F</li>`;
+        weatherString += `<li>Low: ${todaysForecast.lowTemp}°F</li>`;
 
-        if (todaysForcast.precipChance > 30) {
-            weatherString += "<li>Precipitation: " + todaysForcast.precipChance + "% chance ";
-            if (todaysForcast.rainMeasure > 0.5) {
-                weatherString += "of " + todaysForcast.rainMeasure.toFixed(1) + "in rain<br></li>";
+        if (todaysForecast.precipChance > 30) {
+            weatherString += `<li>Precipitation: ${todaysForecast.precipChance}% chance `;
+            if (todaysForecast.rainMeasure > 0.5) {
+                weatherString += `of ${todaysForecast.rainMeasure.toFixed(1)}in rain`;
             }
-            else if (todaysForcast.snowMeasure > 0.5) {
-                weatherString += "of " + todaysForcast.snowMeasure.toFixed(1) + "in snow<br></li>";
+            else if (todaysForecast.snowMeasure > 0.5) {
+                weatherString += `of ${todaysForecast.snowMeasure.toFixed(1)}in snow`;
             }
-            else if (todaysForcast.iceMeasure > 0.5) {
-                weatherString += "of " + todaysForcast.iceMeasure.toFixed(1) + "in ice<br></li>";
+            else if (todaysForecast.iceMeasure > 0.5) {
+                weatherString += `of ${todaysForecast.iceMeasure.toFixed(1)}in ice`;
             }
-            else {
-                weatherString += "</li>";
-            }
+
+            weatherString += "</li>";
         }
-        if (todaysForcast.windSpeed > 10) {
-            weatherString += "<li>Wind: Up to " + todaysForcast.windSpeed + "mi/h from " + todaysForcast.windDirection + "</li>";
+        if (todaysForecast.windSpeed > 10) {
+            weatherString += `<li>Wind: Up to ${todaysForecast.windSpeed}mi/h from ${todaysForecast.windDirection}</li>`;
         }
-        weatherString += "<li>" + todaysForcast.headline + "</li>";
+        weatherString += `<li>${todaysForecast.headline}</li>`;
         weatherString += "</ul>";
     }
     else { // encountered an error
-        weatherString = todaysForcast;
+        weatherString = todaysForecast;
         GmailApp.sendEmail(ERROR_EMAIL_ADDRESS, "Error in Morning Announcement Generation", weatherString, {from: SENDER_ALIAS});
     }
     return weatherString;
 }
 
 function getBirthdaysString(date) {
-    var [studentNames, staffNames] = getICBirthdays(date);
+    let [studentNames, staffNames] = getICBirthdays(date);
     staffNames = getSheetBirthdays(date); // get staff from sheet that includes associates
 
     // Get birthdays from the weekend
@@ -125,7 +129,7 @@ function getBirthdaysString(date) {
             weekendDate.setDate(weekendDate.getDate() + 1);
         }
 
-        var [weekendStudentNames, weekendStaffNames] = getICBirthdays(weekendDate);
+        let [weekendStudentNames, weekendStaffNames] = getICBirthdays(weekendDate);
         weekendStaffNames = getSheetBirthdays(weekendDate);
         studentNames.push(...weekendStudentNames);
         staffNames.push(...weekendStaffNames);
@@ -135,17 +139,17 @@ function getBirthdaysString(date) {
 }
 
 function generateBirthDayString(studentNames, staffNames) {
-    var birthdayString = "";
+    let birthdayString = "";
     if (Array.isArray(studentNames) && studentNames.length > 0) {
-        birthdayString += "Students:<ul><li>" + studentNames.join("</li><li>") + "</li></ul>";
+        birthdayString += `Students:<ul><li>${studentNames.join("</li><li>")}</li></ul>`;
     }
     if (Array.isArray(staffNames) && staffNames.length > 0) {
-        birthdayString += "Staff:<ul><li>" + staffNames.join("</li><li>") + "</li></ul>";
+        birthdayString += `Staff:<ul><li>${staffNames.join("</li><li>")}</li></ul>`;
     }
     
     if (birthdayString === "") { 
         if (studentNames.length > 0 || staffNames.length > 0) { // encountered an error
-            birthdayString = studentNames + "\n<br>" + staffNames;
+            birthdayString = `${studentNames}\n<br>${staffNames}`;
             GmailApp.sendEmail(ERROR_EMAIL_ADDRESS, "Error in Morning Announcement Generation", birthdayString, {from: SENDER_ALIAS});
         }
         else {
@@ -162,11 +166,11 @@ function getLunchMenuString(date) {
 function getSpecialDaysString(date, skipdates) {
     const specialDays = getSpecialDays(date, skipdates);
 
-    var specialDaysString = "<ul>";
-    for (const dayType of specialDays) {
-        specialDaysString += "<li>" + dayType[0] + ": " + dayType[1] + "</li>"
+    let specialDaysString = "<ul>";
+    for (const [dayType, dayVal] of specialDays) {
+        specialDaysString += `<li>${dayType}: ${dayVal}</li>`;
     }
-    specialDaysString += "</ul>"
+    specialDaysString += "</ul>";
     return specialDaysString;
 }
 
@@ -179,14 +183,14 @@ function getUpcommingSkipdateString(date, skipdates) {
         nextWeekday.setDate(nextWeekday.getDate() + 3);
     }
 
-    var upcommingSkipdate = [];
+    let upcommingSkipdate = [];
     for (const skipdate of skipdates) {
         if (datesAreSameDay(nextWeekday, skipdate[0])) {
             upcommingSkipdate = skipdate;
         }
     }
 
-    var skipdateString = "";
+    let skipdateString = "";
     if (upcommingSkipdate.length === 1) {
         skipdateString = "There will be no school on " + Utilities.formatDate(upcommingSkipdate[0], TIME_ZONE, "EEEE, MMMM d");
     }
@@ -198,7 +202,7 @@ function getUpcommingSkipdateString(date, skipdates) {
 }
 
 function compileAnnouncementEmail(date, weather, birthdays, lunch, specialDays, upcommingSkipdate) {
-    var emailBody = HtmlService.createHtmlOutputFromFile(EMAIL_TEMPLATE_FILE).getContent();
+    let emailBody = HtmlService.createHtmlOutputFromFile(EMAIL_TEMPLATE_FILE).getContent();
     emailBody = emailBody.replace("%date", Utilities.formatDate(date, TIME_ZONE, "EEEE, MMMM d y"));
     emailBody = emailBody.replace("%weather", weather);
     emailBody = emailBody.replace("%birthdays", birthdays);

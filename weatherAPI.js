@@ -14,7 +14,7 @@ function getWeatherForcast() {
         const response = UrlFetchApp.fetch(url);
         const responseData = JSON.parse(response.getContentText());
         
-        const todaysForcast = {
+        const todaysForecast = {
             headline: responseData.Headline.Text,
             headlineDate: new Date(responseData.Headline.EffectiveDate),
             highTemp: responseData.DailyForecasts[0].Temperature.Maximum.Value,
@@ -28,7 +28,7 @@ function getWeatherForcast() {
             windDirection: responseData.DailyForecasts[0].Day.Wind.Direction.English,
         };
         
-        return todaysForcast;
+        return todaysForecast;
     }
     catch (err) {
         Logger.log("Error Caught: %s", err.message);
