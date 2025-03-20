@@ -7,7 +7,10 @@ const TIME_ZONE = Session.getScriptTimeZone();
 const DATES_TO_SKIP = [ // Weekends are automatically skipped
     "Jan 20, 2025",
     "Feb 17, 2025",
+    "Feb 18, 2025", // snow day
+    "Mar 5, 2025", // snow day
     "Mar 14, 2025 - Mar 17, 2025",
+    "Mar 19, 2025", // snow day
     "Apr 17, 2025 - Apr 21, 2025",
 ];
 const END_DATE = "May 24, 2025";
@@ -17,9 +20,9 @@ function generateAnnouncement() {
     const skipdates = skipdateStringsToDates(DATES_TO_SKIP);
 
     const dateIsBeforeEndDate = todaysDate < new Date(END_DATE);
-    if (dateIsBeforeEndDate && dateIsNotAWeekendOrSkipDay(todaysDate, skipdates)) {
+    if (dateIsBeforeEndDate && !dateIsASkipdate(todaysDate, skipdates)) {
         const todaysWeather = getTodaysWeatherString(todaysDate);
-        const todaysBirthdays = getBirthdaysString(todaysDate);
+        const todaysBirthdays = getBirthdaysString(todaysDate, skipdates);
         const todaysLunch = getLunchMenuString(todaysDate);
         const todaysSpecialDays = getSpecialDaysString(todaysDate, skipdates);
         const upcommingSkipdate = getUpcommingSkipdateString(todaysDate, skipdates);
@@ -53,9 +56,9 @@ function skipdateStringsToDates(skipdateStrings) {
     return skipdates;
 }
 
-function dateIsNotAWeekendOrSkipDay(date, skipdates) {
+function dateIsASkipdate(date, skipdates) {
     if (!isWeekday(date)) {
-        return false;
+        return true;
     }
 
     for (const skipdate of skipdates) {
@@ -63,10 +66,10 @@ function dateIsNotAWeekendOrSkipDay(date, skipdates) {
         const dateIsWithinRange = skipdate.length == 2 
                             && (datesAreSameDay(date, skipdate[1]) || (skipdate[0] < date && date < skipdate[1]));
         if (dateMatchesFirstSkipdate || dateIsWithinRange) {
-            return false;
+            return true;
         }
     }
-    return true;
+    return false;
 }
 
 function isWeekday(date) {
@@ -114,39 +117,43 @@ function getTodaysWeatherString(todaysDate) {
     return weatherString;
 }
 
-function getBirthdaysString(date) {
-    let [studentNames, staffNames] = getICBirthdays(date);
-    staffNames = getSheetBirthdays(date); // get staff from sheet that includes associates
+function getBirthdaysString(date, skipdates) {
+    const birthdaysByDate = [];
+    const birthdayDate = new Date(date);
+    do {
+        const birthdayInfo = getICBirthdays(birthdayDate);
+        birthdayInfo.staffNames = getSheetBirthdays(birthdayDate); // replaces staff birthdays with google sheet that includes associates
+        
+        birthdaysByDate.push(birthdayInfo);
+        birthdayDate.setDate(birthdayDate.getDate() - 1);
+    } while (dateIsASkipdate(birthdayDate, skipdates) && birthdaysByDate.length < 7);
 
-    // Get birthdays from the weekend
-    // group Saturday birthdays with Friday, Sunday birthdays with Monday
-    if (date.getDay() === 1 || date.getDay() === 5) {
-        const weekendDate = new Date(date);
-        if (date.getDay() === 1) {
-            weekendDate.setDate(weekendDate.getDate() - 1);
-        }
-        else {
-            weekendDate.setDate(weekendDate.getDate() + 1);
-        }
-
-        let [weekendStudentNames, weekendStaffNames] = getICBirthdays(weekendDate);
-        weekendStaffNames = getSheetBirthdays(weekendDate);
-        studentNames.push(...weekendStudentNames);
-        staffNames.push(...weekendStaffNames);
+    if (birthdaysByDate.length === 7) {
+        birthdaysByDate.length = 1;
     }
 
-    return generateBirthDayString(studentNames, staffNames);
+    return generateBirthDayString(date, birthdaysByDate);
 }
 
-function generateBirthDayString(studentNames, staffNames) {
+function generateBirthDayString(todaysDate, birthdaysByDate) {
     let birthdayString = "";
-    if (Array.isArray(studentNames) && studentNames.length > 0) {
-        birthdayString += `Students:<ul><li>${studentNames.join("</li><li>")}</li></ul>`;
+    for (const birthdays of birthdaysByDate) {
+        if (birthdays.studentNames.length > 0 || birthdays.staffNames.length > 0) {
+            if (datesAreSameDay(birthdays.date, todaysDate)) {
+                birthdayString += "Today - ";
+            }
+            birthdayString += `${Utilities.formatDate(birthdays.date, TIME_ZONE, "EEEE")}<ul>`;
+            
+            if (Array.isArray(birthdays.studentNames) && birthdays.studentNames.length > 0) {
+                birthdayString += `Students:<ul><li>${birthdays.studentNames.join("</li><li>")}</li></ul>`;
+            }
+            if (Array.isArray(birthdays.staffNames) && birthdays.staffNames.length > 0) {
+                birthdayString += `Staff:<ul><li>${birthdays.staffNames.join("</li><li>")}</li></ul>`;
+            }
+            birthdayString += "</ul>";
+        }
     }
-    if (Array.isArray(staffNames) && staffNames.length > 0) {
-        birthdayString += `Staff:<ul><li>${staffNames.join("</li><li>")}</li></ul>`;
-    }
-    
+
     if (birthdayString === "") { 
         if (studentNames.length > 0 || staffNames.length > 0) { // encountered an error
             birthdayString = `${studentNames}\n<br>${staffNames}`;

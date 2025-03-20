@@ -2,8 +2,8 @@ const LOCATION_KEY = "51360";
 const WEATHER_API_URL = "http://dataservice.accuweather.com/forecasts/v1/daily/1day/";
 const WEATHER_API_KEY = "itsFreeOnTheirWebsite";
 
-// AccuWeather Daily Forcast API
-function getWeatherForcast() {
+// AccuWeather Daily Forecast API
+function getWeatherForecast() {
     try {
         const parameters = {
             apikey: WEATHER_API_KEY,
