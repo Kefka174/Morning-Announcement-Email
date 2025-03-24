@@ -54,7 +54,7 @@ function getSchoolNamesFromID(ids, group, token) {
     };
     const parameters = {
         filter: "sourcedId='" + ids.join("' OR sourcedId='") + "'",
-        fields: "givenName,familyName",
+        fields: "sourcedId,givenName,familyName",
         limit: 5000,
     };
     const baseUrl = IC_API_URL + "rostering/v1p2/schools/" + SCHOOL_ID + '/' + group;
@@ -64,9 +64,32 @@ function getSchoolNamesFromID(ids, group, token) {
     
     const names = [];
     for (const user of responseData.users) {
-        names.push(user.givenName + " " + user.familyName);
+        let name = user.givenName + " " + user.familyName
+        if (group == "students") {
+            name += ` (Homeroom: ${getHomeroomFromID(user.sourcedId, token)})`;
+        }
+        names.push(name);
     }
     return names;
+}
+
+function getHomeroomFromID(id, token) {
+    const options = {
+        headers: {
+            Authorization: "Bearer " + token,
+        }
+    };
+    const parameters = {
+        filter: "classType='homeroom'",
+        fields: "classCode",
+        limit: 1,
+    };
+    const baseUrl = IC_API_URL + "rostering/v1p2/students/" + id + "/classes";
+    const url = buildUrl_(baseUrl, parameters);
+    const response = UrlFetchApp.fetch(url, options);
+    const responseData = JSON.parse(response.getContentText());
+
+    return responseData.classes[0].classCode.split(',')[0];    
 }
 
 function getOAuthToken() {
