@@ -120,18 +120,34 @@ function getTodaysWeatherString(todaysDate) {
 function getBirthdaysString(date, skipdates) {
     const birthdaysByDate = [];
     const birthdayDate = new Date(date);
+    let maxNumDatesCollected = 7;
+    let nextDateModifier = -1;
+
+    // True if today is Monday and last Friday was not a skipdate
+    const needYesterdaysBirthdays = date.getDay() === 1 && !dateIsASkipdate(new Date(new Date().setDate(date.getDate() - 3)), skipdates);
+    // True if today is Friday and next Monday is not a skipdate
+    const needTomorrowsBirthdays = date.getDay() === 5 && !dateIsASkipdate(new Date(new Date().setDate(date.getDate() + 3)), skipdates);
+    if (needYesterdaysBirthdays) {
+        maxNumDatesCollected = 2;
+    }
+    else if (needTomorrowsBirthdays) {
+        maxNumDatesCollected = 2;
+        nextDateModifier = 1;
+    } 
+    // Else get birthdays from the last stretch of skipdates
+
     do {
         const birthdayInfo = getICBirthdays(birthdayDate);
         birthdayInfo.staffNames = getSheetBirthdays(birthdayDate); // replaces staff birthdays with google sheet that includes associates
         
         birthdaysByDate.push(birthdayInfo);
-        birthdayDate.setDate(birthdayDate.getDate() - 1);
-    } while (dateIsASkipdate(birthdayDate, skipdates) && birthdaysByDate.length < 7);
-
-    if (birthdaysByDate.length === 7) {
+        birthdayDate.setDate(birthdayDate.getDate() + nextDateModifier);
+    } while (dateIsASkipdate(birthdayDate, skipdates) && birthdaysByDate.length < maxNumDatesCollected);
+    
+    if (maxNumDatesCollected > 2 && birthdaysByDate.length === maxNumDatesCollected) {
         birthdaysByDate.length = 1;
     }
-
+        
     return generateBirthDayString(date, birthdaysByDate);
 }
 
@@ -155,8 +171,8 @@ function generateBirthDayString(todaysDate, birthdaysByDate) {
     }
 
     if (birthdayString === "") { 
-        if (studentNames.length > 0 || staffNames.length > 0) { // encountered an error
-            birthdayString = `${studentNames}\n<br>${staffNames}`;
+        if (birthdaysByDate[0].studentNames.length > 0 || birthdaysByDate[0].staffNames.length > 0) { // encountered an error
+            birthdayString = `${birthdaysByDate[0].studentNames}\n<br>${birthdaysByDate[0].staffNames}`;
             GmailApp.sendEmail(ERROR_EMAIL_ADDRESS, "Error in Morning Announcement Generation", birthdayString, {from: SENDER_ALIAS});
         }
         else {
