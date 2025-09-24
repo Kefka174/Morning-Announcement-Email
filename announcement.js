@@ -5,15 +5,18 @@ const EMAIL_TEMPLATE_FILE = "emailTemplate";
 const TIME_ZONE = Session.getScriptTimeZone();
 
 const DATES_TO_SKIP = [ // Weekends are automatically skipped
-    "Jan 20, 2025",
-    "Feb 17, 2025",
-    "Feb 18, 2025", // snow day
-    "Mar 5, 2025", // snow day
-    "Mar 14, 2025 - Mar 17, 2025",
-    "Mar 19, 2025", // snow day
-    "Apr 17, 2025 - Apr 21, 2025",
+    "Sep 1, 2025",
+    "Sep 22, 2025",
+    "Oct 13, 2025",
+    "Nov 14, 2025",
+    "Nov 26, 2025 - Nov 28, 2025",
+    "Dec 22, 2025 - Jan 2, 2026",
+    "Jan 19, 2026",
+    "Feb 16, 2026",
+    "Mar 13, 2026 - Mar 16, 2026",
+    "Apr 2, 2026 - Apr 6, 2026",
 ];
-const END_DATE = "May 24, 2025";
+const END_DATE = "May 22, 2026";
 
 function generateAnnouncement() {
     const todaysDate = new Date();
@@ -30,7 +33,7 @@ function generateAnnouncement() {
         const emailSubject = "Announcement Info for " + Utilities.formatDate(todaysDate, TIME_ZONE, "EEEE, MMMM d y");
         let emailBody = compileAnnouncementEmail(todaysDate, todaysWeather, todaysBirthdays, todaysLunch, todaysSpecialDays, upcommingSkipdate);
         
-        Logger.log("Sending email to '%s'\nSubject:\n\t%s\nEmail Body:\n%s", RECIEVER_EMAIL_ADDRESS, emailSubject, emailBody);
+        Logger.log(`Sending email to '${RECIEVER_EMAIL_ADDRESS}'\nSubject:\n\t${emailSubject}\nEmail Body:\n${emailBody}`);
         GmailApp.sendEmail(RECIEVER_EMAIL_ADDRESS, emailSubject, emailBody, {htmlBody: emailBody, from: SENDER_ALIAS});
     }
 }
@@ -50,7 +53,7 @@ function skipdateStringsToDates(skipdateStrings) {
             skipdates.push([new Date(startStr), new Date(endStr)]);
         }
         else {
-            Logger.log("Invalid format on date to skip: %s", skipdateString);
+            Logger.log(`Invalid format on date to skip: ${skipdateString}`);
         }
     }
     return skipdates;
@@ -86,32 +89,23 @@ function getTodaysWeatherString(todaysDate) {
     const todaysForecast = getWeatherForecast();
     let weatherString = "";
     if (typeof todaysForecast === 'object') {
-        weatherString += `${todaysForecast.description}.<ul>`;
-        weatherString += `<li>High: ${todaysForecast.highTemp}°F</li>`;
-        weatherString += `<li>Low: ${todaysForecast.lowTemp}°F</li>`;
+        weatherString += `${todaysForecast.description}<ul>`;
+        weatherString += `<li>High: ${todaysForecast.highTemp.toFixed()}°F</li>`;
+        weatherString += `<li>Low: ${todaysForecast.lowTemp.toFixed()}°F</li>`;
 
-        if (todaysForecast.precipChance > 30) {
-            weatherString += `<li>Precipitation: ${todaysForecast.precipChance}% chance `;
-            if (todaysForecast.rainMeasure > 0.5) {
-                weatherString += `of ${todaysForecast.rainMeasure.toFixed(1)}in rain`;
-            }
-            else if (todaysForecast.snowMeasure > 0.5) {
-                weatherString += `of ${todaysForecast.snowMeasure.toFixed(1)}in snow`;
-            }
-            else if (todaysForecast.iceMeasure > 0.5) {
-                weatherString += `of ${todaysForecast.iceMeasure.toFixed(1)}in ice`;
-            }
-
-            weatherString += "</li>";
+        if (todaysForecast.rainChance > 30) {
+            weatherString += `<li>Precipitation: ${todaysForecast.rainChance}% chance of ${todaysForecast.precipMeasure}in rain</li>`;
         }
-        if (todaysForecast.windSpeed > 10) {
-            weatherString += `<li>Wind: Up to ${todaysForecast.windSpeed}mi/h from ${todaysForecast.windDirection}</li>`;
+        if (todaysForecast.snowChance > 30) {
+            weatherString += `<li>Precipitation: ${todaysForecast.snowChance}% chance of ${todaysForecast.precipMeasure}in snow</li>`;
         }
-        weatherString += `<li>${todaysForecast.headline}</li>`;
+        if (todaysForecast.windSpeed > 15) {
+            weatherString += `<li>Wind: Up to ${todaysForecast.windSpeed}mi/h</li>`;
+        }
         weatherString += "</ul>";
     }
     else { // encountered an error
-        weatherString = todaysForecast;
+        weatherString = "ERROR in Weather API, should be cleared up by tomorrow";
         GmailApp.sendEmail(ERROR_EMAIL_ADDRESS, "Error in Morning Announcement Generation", weatherString, {from: SENDER_ALIAS});
     }
     return weatherString;

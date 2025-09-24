@@ -17,7 +17,7 @@ function getICBirthdays(date) {
         return birthdayInfo;
     }
     catch (err) {
-        Logger.log("Error Caught: %s", err.message);
+        Logger.log(`Error Caught: ${err.message}`);
         return ["ERROR REQUESTING DEMOGRAPHICS DATA"];
     }
 }

@@ -16,7 +16,7 @@ function getSheetBirthdays(date) {
         return names;
     }
     catch (err) {
-        Logger.log("Error Caught: %s", err.message);
+        Logger.log(`Error Caught: ${err.message}`);
         return "ERROR REQUESTING GOOGLE SHEET DATA";
     }
 }
